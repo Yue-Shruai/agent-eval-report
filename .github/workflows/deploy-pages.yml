@@ -1,0 +1,46 @@
+name: Deploy Agent Eval report to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out report
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Prepare site and restore images
+        run: |
+          mkdir -p dist
+          cp index.html dist/index.html
+          base64 --decode payload/flow.b64 > dist/Eval流程图.png
+          base64 --decode payload/trace-d01.b64 > dist/D01-Trace.png
+          base64 --decode payload/content-view.b64 > dist/可视化.png
+          base64 --decode payload/cluster-map.b64 > dist/Cluster-map.png
+          base64 --decode payload/progress.b64 > dist/progress.png
+          base64 --decode payload/annotation-example.b64 > dist/标注示例.png
+          base64 --decode payload/follow-up-actions.b64 > dist/轴心编码后续动作.png
+          base64 --decode payload/consistency-matrix.b64 > dist/评测一致性矩阵.png
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
